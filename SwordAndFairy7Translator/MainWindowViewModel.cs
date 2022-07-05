@@ -93,7 +93,6 @@ namespace SwordAndFairy7Translator
 
         private async Task OnLoaded()
         {
-            var font = new FontFamily("Pal7/Content/UI/fnt/FZBWKSJW.ufont");
             //if (!StartupDialogViewModel.CheckInstallation())
             {
                 var vm = new StartupDialogViewModel();

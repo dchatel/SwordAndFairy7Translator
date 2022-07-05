@@ -51,12 +51,12 @@ public class PreparationViewModel
             Clean();
             UnrealTools.ExtractAny("*FZBWKSJW.ufont", "Pal7");
             UnrealTools.ExtractAny("*Game.locres", "extracted");
-            UnrealTools.LocresExport(@"extracted/Pal7/Content/Localization/Game/en/Game.locres", "en.extracted.csv");
-            UnrealTools.LocresExport(@"extracted/Pal7/Content/Localization/Game/zh-Hans/Game.locres", "zh-Hans.extracted.csv");
-            UnrealTools.LocresExport(@"extracted/Pal7/Content/Localization/Game/zh-Hant-TW/Game.locres", "zh-Hant-TW.extracted.csv");
+            UnrealTools.LocresExport(Path.Combine("extracted", "Pal7", "Content", "Localization", "Game", "en", "Game.locres"), "en.extracted.csv");
+            UnrealTools.LocresExport(Path.Combine("extracted", "Pal7", "Content", "Localization", "Game", "zh-Hans", "Game.locres"), "zh-Hans.extracted.csv");
+            UnrealTools.LocresExport(Path.Combine("extracted", "Pal7", "Content", "Localization", "Game", "zh-Hant-TW", "Game.locres"), "zh-Hant-TW.extracted.csv");
 
             if (UnrealTools.ExtractMod())
-                UnrealTools.LocresExport(@"Pal7/Content/Localization/Game/en/Game.locres", "en.modded.csv");
+                UnrealTools.LocresExport(Path.Combine("Pal7", "Content", "Localization", "Game", "en", "Game.locres"), "en.modded.csv");
         });
 
         TaskName = "Reading localization files...";

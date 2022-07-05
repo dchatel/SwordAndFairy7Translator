@@ -21,24 +21,27 @@ namespace SwordAndFairy7Translator
 
         public static bool ExtractMod()
         {
-            var pakfile = $@"{Settings.Default.Pal7Folder}\Pal7\Content\Paks\~mods\{Settings.Default.ModName}.pak";
+            var pakfile = Path.Combine(
+                Settings.Default.Pal7Folder,
+                "Pal7", "Content", "Paks", "~mods", $"{Settings.Default.ModName}.pak");
             if (!File.Exists(pakfile)) return false;
             var basedir = AppDomain.CurrentDomain.BaseDirectory;
-            var args = $@"{basedir}\Binaries\Win64\UnrealPakTool\UnrealPak.exe -Extract '{pakfile}' '{basedir}Pal7' -cryptokeys='{basedir}Binaries\Win64\UnrealPakTool\Crypto.json'";
+            var unrealpaktoolpath = Path.Combine(basedir, "Binaries", "Win64", "UnrealPakTool");
+            var args = $@"{Path.Combine(unrealpaktoolpath, "UnrealPak.exe")} -Extract '{pakfile}' '{basedir}Pal7' -cryptokeys='{Path.Combine(unrealpaktoolpath, "Crypto.json")}'";
             Process.Start(new ProcessStartInfo($@"powershell.exe", args)
             {
                 CreateNoWindow = true,
                 WorkingDirectory = basedir,
             })!.WaitForExit();
-            FileSystem.MoveDirectory("Pal7/Localization", "Pal7/Content/Localization", true);
-            FileSystem.MoveDirectory("Pal7/UI", "Pal7/Content/UI", true);
+            FileSystem.MoveDirectory(Path.Combine("Pal7", "Localization"), Path.Combine("Pal7", "Content", "Localization"), true);
+            FileSystem.MoveDirectory(Path.Combine("Pal7", "UI"), Path.Combine("Pal7", "Content", "UI"), true);
             return true;
         }
 
         public static void ExtractAny(string pattern, string extractDir)
         {
             var basedir = AppDomain.CurrentDomain.BaseDirectory;
-            var args = $@"ls '{Settings.Default.Pal7Folder}\Pal7\Content\Paks\*.pak'|foreach{{{basedir}Binaries\Win64\UnrealPakTool\UnrealPak.exe -Extract $_.FullName '{basedir}{extractDir}' -Filter='{pattern}' -cryptokeys='{basedir}Binaries\Win64\UnrealPakTool\Crypto.json'}}";
+            var args = $@"ls '{Path.Combine(Settings.Default.Pal7Folder, "Pal7", "Content", "Paks", "*.pak")}'|foreach{{{Path.Combine(basedir, "Binaries", "Win64", "UnrealPakTool", "UnrealPak.exe")} -Extract $_.FullName '{Path.Combine(basedir, extractDir)}' -Filter='{pattern}' -cryptokeys='{Path.Combine(basedir, "Binaries", "Win64", "UnrealPakTool", "Crypto.json")}'}}";
             Process.Start(new ProcessStartInfo("powershell.exe", args)
             {
                 CreateNoWindow = true,
@@ -65,10 +68,10 @@ namespace SwordAndFairy7Translator
             using (var csvWriter = new CsvWriter(writer, csvConfig))
                 csvWriter.WriteRecords(locales);
 
-            Directory.CreateDirectory(@$"{basedir}\Pal7\Content\Localization\Game\en\");
+            Directory.CreateDirectory(Path.Combine(basedir, "Pal7", "Content", "Localization", "Game", "en"));
             Process.Start(new ProcessStartInfo(
                 $"powershell.exe",
-                $@"{basedir}/UnrealLocres.exe import extracted\Pal7\Content\Localization\Game\en\Game.locres modded.csv -o Pal7/Content/Localization/Game/en/Game.locres")
+                $@"{Path.Combine(basedir, "UnrealLocres.exe")} import {Path.Combine("extracted", "Pal7", "Content", "Localization", "Game", "en", "Game.locres")} modded.csv -o {Path.Combine("Pal7", "Content", "Localization", "Game", "en", "Game.locres")}")
             {
                 CreateNoWindow = true,
                 WorkingDirectory = basedir,
@@ -89,20 +92,20 @@ namespace SwordAndFairy7Translator
 
             UnrealTools.LocresImport(locales);
 
-            using (var writer = new StreamWriter($"Binaries/Win64/UnrealPakTool/list.txt"))
-                writer.WriteLine(@"..\..\..\Pal7\*");
+            using (var writer = new StreamWriter(Path.Combine("Binaries", "Win64", "UnrealPakTool", "list.txt")))
+                writer.WriteLine(Path.Combine("..", "..", "..", "Pal7", "*"));
 
             Process.Start(new ProcessStartInfo(
                 $"powershell.exe",
-                $"Binaries/Win64/UnrealPakTool/UnrealPak.exe '{Settings.Default.Pal7Folder}/Pal7/Content/Paks/~mods/{Settings.Default.ModName}.pak' -Create='list.txt' -compress")
+                $"{Path.Combine("Binaries", "Win64", "UnrealPakTool", "UnrealPak.exe")} '{Path.Combine(Settings.Default.Pal7Folder, "Pal7", "Content", "Paks", "~mods", $"{Settings.Default.ModName}.pak")}' -Create='list.txt' -compress")
             {
                 CreateNoWindow = true,
                 WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory,
             })!.WaitForExit();
-            File.Delete($"Binaries/Win64/UnrealPakTool/list.txt");
+            File.Delete(Path.Combine("Binaries", "Win64", "UnrealPakTool", "list.txt"));
 
-            File.Copy($"{Settings.Default.Pal7Folder}/Pal7/Content/Paks/dat1-WindowsNoEditor.sig",
-                $"{Settings.Default.Pal7Folder}/Pal7/Content/Paks/~mods/{Settings.Default.ModName}.sig", overwrite: true);
+            File.Copy(Path.Combine(Settings.Default.Pal7Folder, "Pal7", "Content", "Paks", "dat1-WindowsNoEditor.sig"),
+                Path.Combine(Settings.Default.Pal7Folder, "Pal7", "Content", "Paks", "~mods", $"{Settings.Default.ModName}.sig"), overwrite: true);
         }
     }
 }

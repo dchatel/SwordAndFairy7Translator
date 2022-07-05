@@ -18,7 +18,7 @@ using System.Windows.Input;
 
 namespace SwordAndFairy7Translator.Views.StartupDialog;
 
-public class StartupDialogViewModel:INotifyPropertyChanged
+public class StartupDialogViewModel : INotifyPropertyChanged
 {
     private const string UnrealLocresDownloadPath = "https://github.com/akintos/UnrealLocres/releases/download/1.1.1/UnrealLocres.exe";
     private const string UnrealPakToolDownloadPath = "https://github.com/allcoolthingsatoneplace/UnrealPakTool/releases/download/4.25.3/UnrealPakTool.zip";
@@ -30,7 +30,7 @@ public class StartupDialogViewModel:INotifyPropertyChanged
 
     public static bool CheckInstallation(StartupDialogViewModel? vm = null)
     {
-        if (!Directory.Exists("Binaries/Win64")) return false;
+        if (!Directory.Exists(Path.Combine("Binaries", "Win64"))) return false;
         if (!File.Exists("UnrealLocres.exe")) return false;
         if (string.IsNullOrEmpty(vm?.Pal7Folder ?? Settings.Default.Pal7Folder)) return false;
         if (string.IsNullOrEmpty(vm?.ModName ?? Settings.Default.ModName)) return false;
@@ -88,10 +88,6 @@ public class StartupDialogViewModel:INotifyPropertyChanged
     private void StartupDialogViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         ((IRelayCommand)AcceptCommand).NotifyCanExecuteChanged();
-        //if (e.PropertyName == nameof(TranslatorService))
-        //{
-        //    Languages = await TranslatorServiceHelper.Translator!.GetLanguagesAsync();
-        //}
     }
 
     private async Task Accept()
@@ -125,10 +121,7 @@ public class StartupDialogViewModel:INotifyPropertyChanged
 
     private async Task OnLoaded()
     {
-        //if (TranslatorServiceHelper.Translator is not null)
-        //    Languages = await TranslatorServiceHelper.Translator.GetLanguagesAsync();
-
-        if (!Directory.Exists("Binaries/Win64"))
+        if (!Directory.Exists(Path.Combine("Binaries", "Win64")))
         {
             TaskName = "Installing UnrealPakTool...";
             using (var client = new HttpClient())
@@ -139,11 +132,11 @@ public class StartupDialogViewModel:INotifyPropertyChanged
                 await stream.CopyToAsync(fs);
             }
 
-            ZipFile.ExtractToDirectory("unrealpaktool.zip", "Binaries/Win64");
+            ZipFile.ExtractToDirectory("unrealpaktool.zip", Path.Combine("Binaries", "Win64"));
             File.Delete("unrealpaktool.zip");
-            var cryptoContents = await File.ReadAllTextAsync("Binaries/Win64/UnrealPakTool/Crypto.json");
+            var cryptoContents = await File.ReadAllTextAsync(Path.Combine("Binaries", "Win64", "UnrealPakTool", "Crypto.json"));
             cryptoContents = cryptoContents.Replace("Your Base64 key here", "5Tvr287IKZXzcDO2LP2CQ+AsEMA6sS6mgvZU3IBfQAk=");
-            await File.WriteAllTextAsync("Binaries/Win64/UnrealPakTool/Crypto.json", cryptoContents);
+            await File.WriteAllTextAsync(Path.Combine("Binaries", "Win64", "UnrealPakTool", "Crypto.json"), cryptoContents);
         }
         if (!File.Exists("UnrealLocres.exe"))
         {
