@@ -45,8 +45,7 @@
                       ItemsSource="{Binding Languages}"
                       DisplayMemberPath="Name"
                       SelectedValuePath="Code"
-                      SelectedValue="{Binding Source={x:Static r:Settings.Default},
-                                              Path=TargetLanguage,
+                      SelectedValue="{Binding Path=TargetLanguage,
                                               Mode=TwoWay}" />
         </Grid>
     </DataTemplate>
@@ -96,8 +95,7 @@
                       ItemsSource="{Binding Languages}"
                       DisplayMemberPath="Name"
                       SelectedValuePath="Code"
-                      SelectedValue="{Binding Source={x:Static r:Settings.Default},
-                                              Path=TargetLanguage,
+                      SelectedValue="{Binding Path=TargetLanguage,
                                               Mode=TwoWay}" />
         </Grid>
     </DataTemplate>

@@ -152,6 +152,7 @@
                                          Text="{Binding Modded}"
                                          TextAlignment="Justify"
                                          TextWrapping="Wrap"
+                                         AcceptsReturn="True"
                                          Background="#3f3f00"
                                          FocusManager.FocusedElement="{Binding RelativeSource={RelativeSource self}}" />
                             </DataTemplate>

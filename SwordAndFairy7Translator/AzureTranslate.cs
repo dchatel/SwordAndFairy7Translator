@@ -21,11 +21,37 @@ public class AzureTranslator : ITranslatorService
     private IEnumerable<Language>? languages;
 
     [SafeForDependencyAnalysis]
-    public string? Key { get => Settings.Default.AzureAPIKey; set => Settings.Default.AzureAPIKey = value; }
+    public string? Key
+    {
+        get => Settings.Default.AzureAPIKey; set
+        {
+            Settings.Default.AzureAPIKey = value;
+            Task.Run(async () => IsValid = await TestAsync());
+        }
+    }
     [SafeForDependencyAnalysis]
-    public string? Region { get => Settings.Default.AzureRegion; set => Settings.Default.AzureRegion = value; }
+    public string? Region
+    {
+        get => Settings.Default.AzureRegion; set
+        {
+            Settings.Default.AzureRegion = value;
+            Task.Run(async () => IsValid = await TestAsync());
+        }
+    }
 
     public string Name => "Microsoft Azure";
+    public bool IsValid { get; private set; }
+
+    [SafeForDependencyAnalysis]
+    public string? TargetLanguage
+    {
+        get => Settings.Default.TargetLanguage;
+        set
+        {
+            Settings.Default.TargetLanguage = value;
+            Task.Run(async () => IsValid = await TestAsync());
+        }
+    }
 
     [SafeForDependencyAnalysis]
     public IEnumerable<Language>? Languages
@@ -57,7 +83,10 @@ public class AzureTranslator : ITranslatorService
     }
     public async Task<IEnumerable<string>> TranslateAsync(string from, params string[] textToTranslate)
     {
-        if (string.IsNullOrEmpty(Key)) return Enumerable.Empty<string>();
+        if (string.IsNullOrEmpty(Key))
+            throw new NullReferenceException(nameof(Key));
+        if (string.IsNullOrEmpty(Region))
+            throw new NullReferenceException(nameof(Region));
 
         // split strings in substrings with or without html tags
         var allMStrings = textToTranslate
@@ -85,42 +114,35 @@ public class AzureTranslator : ITranslatorService
         // Translate using Azure
         foreach (var body in chunks)
         {
-            try
+            var requestBody = JsonConvert.SerializeObject(body);
+
+            using var client = new HttpClient();
+            using var request = new HttpRequestMessage
             {
-                var requestBody = JsonConvert.SerializeObject(body);
+                Method = HttpMethod.Post,
+                RequestUri = new Uri($"{endpoint}translate?api-version=3.0&from={from}&to={Settings.Default.TargetLanguage}"),
+                Content = new StringContent(requestBody, Encoding.UTF8, "application/json"),
+            };
+            request.Headers.Add("Ocp-Apim-Subscription-Key", Key);
+            request.Headers.Add("Ocp-Apim-Subscription-Region", Region);
 
-                using var client = new HttpClient();
-                using var request = new HttpRequestMessage
-                {
-                    Method = HttpMethod.Post,
-                    RequestUri = new Uri($"{endpoint}translate?api-version=3.0&from={from}&to={Settings.Default.TargetLanguage}"),
-                    Content = new StringContent(requestBody, Encoding.UTF8, "application/json"),
-                };
-                request.Headers.Add("Ocp-Apim-Subscription-Key", Key);
-                request.Headers.Add("Ocp-Apim-Subscription-Region", Region);
+            var response = await client.SendAsync(request).ConfigureAwait(false);
+            var result = await response.Content.ReadAsStringAsync();
 
-                var response = await client.SendAsync(request).ConfigureAwait(false);
-                var result = await response.Content.ReadAsStringAsync();
+            var json = JToken.Parse(result);
+            if (json.Type == JTokenType.Object)
+            {
 
-                var json = JToken.Parse(result);
-                if (json.Type == JTokenType.Object)
-                {
-
-                    if (((JObject)json).ContainsKey("error"))
-                        throw new ApplicationException((string)json["error"]!["message"]!);
-                }
-                else if (json.Type == JTokenType.Array)
-                {
-                    var tr = json.Select(j => j["translations"]![0]!["text"]!.Value<string>()!);
-                    foreach (var (t, ms) in tr.Zip(body))
-                    {
-                        ms.Text = t;
-                    }
-                }
+                if (((JObject)json).ContainsKey("error"))
+                    throw new ApplicationException((string)json["error"]!["message"]!);
             }
-            catch (Exception e)
+            else if (json.Type == JTokenType.Array)
             {
-                MessageBox.Show(e.ToString(), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                var tr = json.Select(j => j["translations"]![0]!["text"]!.Value<string>()!);
+                foreach (var (t, ms) in tr.Zip(body))
+                {
+                    ms.Text = t;
+                }
             }
         }
 
@@ -132,14 +154,14 @@ public class AzureTranslator : ITranslatorService
         return translations;
     }
 
-    public async Task<bool> TestAsync()
+    public async Task<bool> TestAsync(string? overrideLanguage = null)
     {
         try
         {
-            _ = await TranslateAsync(from: "en", "Hello, World!");
+            _ = await TranslateAsync(from: overrideLanguage ?? Settings.Default.TargetLanguage, "Hello, World!");
             return true;
         }
-        catch (Exception)
+        catch
         {
             return false;
         }

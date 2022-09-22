@@ -17,8 +17,10 @@ namespace SwordAndFairy7Translator
     {
         public string Name { get; }
         public IEnumerable<Language>? Languages { get; }
-        public Task<bool> TestAsync();
+        public string? TargetLanguage { get; }
+        public Task<bool> TestAsync(string? overrideLanguage = null);
         public Task<IEnumerable<string>> TranslateAsync(string from, params string[] texts);
+        bool IsValid { get; }
     }
 
     public class TranslatorServiceHelper

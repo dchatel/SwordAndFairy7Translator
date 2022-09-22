@@ -22,7 +22,6 @@ public class StartupDialogViewModel : INotifyPropertyChanged
 {
     private const string UnrealLocresDownloadPath = "https://github.com/akintos/UnrealLocres/releases/download/1.1.1/UnrealLocres.exe";
     private const string UnrealPakToolDownloadPath = "https://github.com/allcoolthingsatoneplace/UnrealPakTool/releases/download/4.25.3/UnrealPakTool.zip";
-    private string? targetLanguage;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string propertyName = null!)
@@ -34,23 +33,12 @@ public class StartupDialogViewModel : INotifyPropertyChanged
         if (!File.Exists("UnrealLocres.exe")) return false;
         if (string.IsNullOrEmpty(vm?.Pal7Folder ?? Settings.Default.Pal7Folder)) return false;
         if (string.IsNullOrEmpty(vm?.ModName ?? Settings.Default.ModName)) return false;
-        if (string.IsNullOrEmpty(vm?.TargetLanguage ?? Settings.Default.TargetLanguage)) return false;
-        return true;
+        return TranslatorServiceHelper.Translator is not null && TranslatorServiceHelper.Translator.IsValid;
+
     }
 
     public string? Pal7Folder { get; set; }
     public string? ModName { get; set; }
-    public string? TargetLanguage
-    {
-        get => targetLanguage;
-        set
-        {
-            targetLanguage = value;
-            if (string.IsNullOrEmpty(ModName) ||
-                ModName.StartsWith("Pal7Translation_"))
-                ModName = $"Pal7Translation_{TargetLanguage}";
-        }
-    }
 
     public string? TaskName { get; set; }
     [SafeForDependencyAnalysis]
@@ -63,6 +51,14 @@ public class StartupDialogViewModel : INotifyPropertyChanged
         set
         {
             TranslatorServiceHelper.Translator = value;
+            if (TranslatorService is DeepLTranslator || TranslatorService is AzureTranslator)
+            {
+                ((INotifyPropertyChanged)TranslatorService).PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == "IsValid")
+                        App.Current.Dispatcher.Invoke(() => ((AsyncRelayCommand)AcceptCommand).NotifyCanExecuteChanged());
+                };
+            }
             OnPropertyChanged();
         }
     }
@@ -74,9 +70,9 @@ public class StartupDialogViewModel : INotifyPropertyChanged
 
     public StartupDialogViewModel()
     {
-        TargetLanguage = Settings.Default.TargetLanguage;
         Pal7Folder = Settings.Default.Pal7Folder;
         ModName = Settings.Default.ModName;
+
 
         OnLoadedCommand = new AsyncRelayCommand(OnLoaded);
         SelectPal7FolderCommand = new RelayCommand(SelectPal7Folder);
@@ -93,7 +89,7 @@ public class StartupDialogViewModel : INotifyPropertyChanged
     private async Task Accept()
     {
         if (!CheckInstallation(this)) { MessageBox.Show("Not all fields are set."); return; }
-        if (!await TranslatorServiceHelper.Translator!.TestAsync()) { MessageBox.Show("Your Azure Subscription key is invalid"); return; }
+        if (!await TranslatorServiceHelper.Translator!.TestAsync("en")) { MessageBox.Show("Your Azure Subscription key is invalid"); return; }
         Dialog.CloseDialog(true);
     }
 
@@ -113,7 +109,6 @@ public class StartupDialogViewModel : INotifyPropertyChanged
     public void SaveConfiguration()
     {
         Settings.Default.TranslateService = TranslatorService?.Name;
-        Settings.Default.TargetLanguage = TargetLanguage;
         Settings.Default.Pal7Folder = Pal7Folder;
         Settings.Default.ModName = ModName;
         Settings.Default.Save();

@@ -21,7 +21,21 @@ namespace SwordAndFairy7Translator
 
         private IEnumerable<Language>? languages;
 
+        [SafeForDependencyAnalysis]
+        public string? TargetLanguage
+        {
+            get => Settings.Default.TargetLanguage;
+            set
+            {
+                Settings.Default.TargetLanguage = value;
+                OnPropertyChanged();
+                Task.Run(async () => IsValid = await TestAsync());
+            }
+        }
+
         public string Name => "DeepL";
+
+        public bool IsValid { get; private set; }
 
         [SafeForDependencyAnalysis]
         public string? Key
@@ -31,15 +45,18 @@ namespace SwordAndFairy7Translator
             {
                 Settings.Default.DeepLAPIKey = value;
                 OnPropertyChanged(nameof(Languages));
+                Task.Run(async () => IsValid = await TestAsync());
             }
         }
         [SafeForDependencyAnalysis]
-        public bool UseFreeApi { 
-            get => Settings.Default.DeepLUseFreeApi; 
+        public bool UseFreeApi
+        {
+            get => Settings.Default.DeepLUseFreeApi;
             set
             {
                 Settings.Default.DeepLUseFreeApi = value;
                 OnPropertyChanged(nameof(Languages));
+                Task.Run(async () => IsValid = await TestAsync());
             }
         }
 
@@ -52,8 +69,8 @@ namespace SwordAndFairy7Translator
                 {
                     Task.Run(async () =>
                     {
-                        if (!await TestAsync()) return;
                         using var deepl = new DeepLClient(Key, UseFreeApi);
+                        if (!await TestAsync(overrideLanguage: "en")) return;
                         var langs = await deepl.GetSupportedLanguagesAsync();
                         languages = langs
                             .Select(l => new Language
@@ -67,19 +84,18 @@ namespace SwordAndFairy7Translator
             }
         }
 
-        public async Task<bool> TestAsync()
+        public async Task<bool> TestAsync(string? overrideLanguage = null)
         {
             using var deepl = new DeepLClient(Key, UseFreeApi);
             try
             {
-                await deepl.TranslateAsync("Hello, World!", Settings.Default.TargetLanguage);
+                await deepl.TranslateAsync("Hello, World!", overrideLanguage ?? Settings.Default.TargetLanguage);
                 return true;
             }
             catch
             {
                 return false;
             }
-
         }
 
         public async Task<IEnumerable<string>> TranslateAsync(string from, params string[] texts)
